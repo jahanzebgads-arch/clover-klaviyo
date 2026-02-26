@@ -11,8 +11,52 @@ const KLAVIYO_API_KEY = process.env.KLAVIYO_API_KEY;
 const KLAVIYO_LIST_ID = process.env.KLAVIYO_LIST_ID;
 const PORT = process.env.PORT || 3000;
 
+const RENDER_URL = process.env.RENDER_URL || "https://clover-klaviyo.onrender.com";
 const CLOVER_BASE = `https://api.clover.com/v3/merchants/${CLOVER_MERCHANT_ID}`;
 const KLAVIYO_BASE = "https://a.klaviyo.com/api";
+const WEBHOOK_URL = `${RENDER_URL}/webhook/clover`;
+
+// ── Auto-register Clover Webhook ─────────────────────────────────────────────
+async function registerCloverWebhook() {
+  try {
+    console.log("🔧 Checking Clover webhooks...");
+
+    // Fetch existing webhooks
+    const existing = await axios.get(`${CLOVER_BASE}/webhook_configs`, {
+      headers: { Authorization: `Bearer ${CLOVER_API_TOKEN}` },
+    });
+
+    const webhooks = existing.data?.elements || [];
+    const alreadyRegistered = webhooks.find((w) => w.url === WEBHOOK_URL);
+
+    if (alreadyRegistered) {
+      console.log("✅ Clover webhook already registered:", WEBHOOK_URL);
+      return;
+    }
+
+    // Register new webhook
+    await axios.post(
+      `${CLOVER_BASE}/webhook_configs`,
+      {
+        url: WEBHOOK_URL,
+        eventTypes: ["PAYMENT"],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${CLOVER_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    console.log("✅ Clover webhook registered successfully:", WEBHOOK_URL);
+  } catch (err) {
+    console.error("⚠️ Could not auto-register Clover webhook:", err.response?.data || err.message);
+    console.log("👉 Please register manually in Clover dashboard:");
+    console.log(`   URL: ${WEBHOOK_URL}`);
+    console.log("   Event: PAYMENT");
+  }
+}
 
 // ── Health check ─────────────────────────────────────────────────────────────
 app.get("/", (req, res) => res.send("Clover → Klaviyo middleware is running ✅"));
@@ -176,4 +220,7 @@ app.post("/webhook/clover", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, async () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  await registerCloverWebhook();
+});
