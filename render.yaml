@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: clover-klaviyo-middleware
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: CLOVER_API_TOKEN
+        value: c4eccd05-6804-a063-610f-5f0f04bc40ac
+      - key: CLOVER_MERCHANT_ID
+        value: 8N515G764S2N1
+      - key: KLAVIYO_API_KEY
+        value: pk_fb2773168d3cfb164083373a969980487e
+      - key: KLAVIYO_LIST_ID
+        value: V22dUx
